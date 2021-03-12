@@ -1,0 +1,25 @@
+{
+  "name": "deploy-it",
+  "version": "1.1.3",
+  "description": "前端项目自动化部署",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "deploy",
+    "auto",
+    "auto deploy"
+  ],
+  "author": "look-dj",
+  "license": "ISC",
+  "dependencies": {
+    "chalk": "^4.1.0",
+    "compressing": "^1.5.1",
+    "execa": "^5.0.0",
+    "fs-extra": "^9.1.0",
+    "io-spin": "^0.4.1",
+    "single-line-log": "^1.1.2",
+    "ssh2": "^0.8.9"
+  }
+}
