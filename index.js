@@ -24,6 +24,10 @@ Log.prototype.red = function(str){
   this.log(chalk.red(str))
 };
 
+Log.prototype.green = function(str){
+  this.log(chalk.green(str))
+};
+
 const log = new Log();
 
 function Generator(option, userInputFn){
@@ -40,8 +44,8 @@ Generator.prototype.build = async function(){
 };
 
 Generator.prototype.compress = async function(){
-  let spinner = spin(chalk.green('✨ 正在压缩打包后的项目...'), "Spin9");
-  let { floder } = this.option;
+  let { floder, spinType } = this.option;
+  let spinner = spin(chalk.green('✨ 正在压缩打包后的项目...'), spinType);
   spinner.start();
   let source = path.resolve(this.dir, floder), compressedName = floder + '.zip';
   let compressPath = path.resolve(this.dir, compressedName);
@@ -56,13 +60,14 @@ Generator.prototype.compress = async function(){
 };
 
 Generator.prototype.testConnect = async function(){
-  let spinner = spin(chalk.green('✨ 正在测试连接远程ssh...'), "Spin9");
+  let { host, spinType, sshKey, port, user } = this.option;
+  let spinner = spin(chalk.green('✨ 正在测试连接远程ssh...'), spinType);
   spinner.start();
   await wait(500);
-  let { option } = this;
   return new Promise((resolve,reject)=>{
     const conn = new Client();
-    conn.on('ready', () => {
+    conn
+    .on('ready', () => {
       // log.blue("Client :: ready");
       spinner.stop();
       conn.exec('uptime', (err, stream) => {
@@ -82,12 +87,13 @@ Generator.prototype.testConnect = async function(){
           log.yellow('STDERR: ' + data);
         });
       });    
-    }).connect({
-      host: option.host,
-      port: option.port,
-      username: option.user,
-      privateKey: option.sshKey
-    });
+    })
+    .connect({
+      host,
+      port,
+      username: user,
+      privateKey: sshKey
+    })
   })
 };
 
@@ -99,8 +105,8 @@ Generator.prototype.uploadFile = async function(){
 };
 
 Generator.prototype.connectServer = async function(){
-  let { option } = this;
-  let spinner = spin(chalk.green('✨ 开始连接远程服务器...'), "Spin9");
+  let { host, spinType, sshKey, port, user } = this.option;
+  let spinner = spin(chalk.green('✨ 开始连接远程服务器...'), spinType);
   spinner.start();
   await wait(500);
   return new Promise((resolve,reject)=>{
@@ -121,10 +127,10 @@ Generator.prototype.connectServer = async function(){
         this.userInputFn(stream);
       });   
     }).connect({
-      host: option.host,
-      port: option.port,
-      username: option.user,
-      privateKey: option.sshKey
+      host,
+      port,
+      username: user,
+      privateKey: sshKey
     });
   })
 };
@@ -147,16 +153,26 @@ Generator.prototype.checkOption = function(){
     throw new Error('option.host param error');
   };
   this.option.port = option.port || 22;
+  this.option.spinType = option.spinType || 'Spin9';
   this.option.floder = option.floder || "dist";
+  this.option.uploadPath = option.uploadPath || "/";
 };
 
 Generator.prototype.start = async function(){
-  this.checkOption();
-  await this.testConnect(); // 测试链接
-  await this.build(); // 打包项目
-  await this.compress(); // 压缩文件
-  await this.uploadFile(); // 上传文件
-  await this.connectServer(); // 服务端部署
+  try{
+    let time = new Date().valueOf(), end = 0;
+    this.checkOption(); // 检查参数
+    await this.testConnect(); // 测试链接
+    await this.build(); // 打包项目
+    await this.compress(); // 压缩文件
+    await this.uploadFile(); // 上传文件
+    await this.connectServer(); // 服务端部署
+    end = new Date().valueOf() - time;
+    log.green('本次自动发布共用时' + Math.round(end / 10 )/100 + 's', );
+  }catch(e){
+    console.log(e);
+    process.exit();
+  }
 }
 
 function cmd(command, opts = {} ) {
