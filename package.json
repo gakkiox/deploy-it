@@ -1,6 +1,6 @@
 {
   "name": "deploy-it",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "前端项目自动化部署",
   "main": "index.js",
   "scripts": {
@@ -10,7 +10,7 @@
     "deploy",
     "auto",
     "auto deploy",
-	"deploy it"
+    "deploy it"
   ],
   "author": "look-dj",
   "license": "ISC",
