@@ -9,7 +9,8 @@
   "keywords": [
     "deploy",
     "auto",
-    "auto deploy"
+    "auto deploy",
+	"deploy it"
   ],
   "author": "look-dj",
   "license": "ISC",
@@ -21,5 +22,10 @@
     "io-spin": "^0.4.1",
     "single-line-log": "^1.1.2",
     "ssh2": "^0.8.9"
+  },
+  "homepage": "https://github.com/look-dj/deploy-it#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/look-dj/deploy-it.git"
   }
 }
