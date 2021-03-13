@@ -30,10 +30,10 @@ Log.prototype.green = function(str){
 
 const log = new Log();
 
-function Generator(option, userInputFn){
+function Generator(option, lifetimes){
   this.option = option;
   this.dir = process.cwd();
-  this.userInputFn = userInputFn;
+  this.lifetimes = lifetimes;
   this.sshForm = {};
 };
 Generator.prototype.checkOption = function(){
@@ -95,6 +95,7 @@ Generator.prototype.build = async function(){
   let { build } = this.option;
   log.red('> 开始打包项目');
   await cmd(build, { show: false, cwd: this.dir });
+  await this.lifetimes.builded.call(this);
   log.red('> 打包完成');
 };
 
@@ -104,20 +105,19 @@ Generator.prototype.compress = async function(){
   let spinner = spin(chalk.green('✨ 正在压缩打包后的项目...'), spinType);
   spinner.start();
   let source = path.resolve(this.dir, floder), compressedName = floder + '.zip';
-  let compressPath = path.resolve(this.dir, compressedName);
+  let compressPath = this.option.compressPath = path.resolve(this.dir, compressedName);
   if(fs.existsSync(compressPath)){
     fs.removeSync(compressPath)
   }
   await compressing.zip.compressDir(source, compressedName);
   await wait(1000);
-  this.compressPath = compressPath;
   spinner.stop();
   log.red('> 压缩完成');
 };
 
 Generator.prototype.uploadFile = async function(){
   log.red(`> 请输入${this.option.username}用户的密码，开始上传项目压缩包`);
-  let { option, compressPath } = this, { username, host, uploadPath } = option;
+  let  { compressPath, username, host, uploadPath } = this.option;
   await cmd(`scp ${ compressPath} ${ username }@${ host }:${ uploadPath }`, { show: true });
   fs.remove(compressPath);
   log.red('> 上传完毕');
@@ -144,7 +144,7 @@ Generator.prototype.connectServer = async function(){
         .on('data', (data) => {
           log.yellow('OUTPUT: ' + data);
         });
-        this.userInputFn(stream);
+        this.lifetimes.uploaded.call(this, stream);
       });   
     }).connect(sshForm);
   })
@@ -235,8 +235,12 @@ module.exports = async function({
   build = "npm run build",
   floder = 'dist',
   useKey = false,
-}, fn = ()=>{}){
+},{
+	uploaded = ()=>{},
+	builded = ()=>{}
+}){
   let option = { username, password, host, port, privateKey, uploadPath, spinType, build, floder, useKey };
-  let generator = new Generator(option, fn);
+  let lifetimes = { uploaded, builded };
+  let generator = new Generator( option, lifetimes );
   await generator.start();
 };

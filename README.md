@@ -20,18 +20,24 @@ const deploy = require('deploy-it');
 
 ;(async ()=>{
 // 请根据您的服务器配置传参
-    `
   let option = {
     username: 'root',
     password: "8848",
     host: "127.0.0.1", 
     port: 22,
   };
-  inputFn(stream){ // 上传文件后可在此处执行解压 移动文件等命令
-    stream.write('unzip -o ./dist.zip \n'); // 解压命令
-    stream.write('exit \n');
-  };
-  await deploy(option, inputFn); // 异步
+  let lifetimes = { // 生命周期控制
+    builded(){
+      console.log('项目已经构建完成'); // 可以执行异步操作
+    },
+	  uploaded(stream){
+      // 在此处执行解压 移动文件等命令
+		  console.log('压缩包已经上传到服务器');
+      stream.write('unzip -o ./dist.zip \n'); // 解压命令
+      stream.write('exit \n');
+	  }
+  }
+  await deploy(option, lifetimes); // 异步
   ....<其他代码>
 })();
 
@@ -48,8 +54,8 @@ const deploy = require('deploy-it');
 4. 然后执行`npm run auto`即可自动部署！
 从本地上传文件到服务器时需要输入用户密码，记得输入哟！
 
-##### option参数详解
-所有`option`参数内容如下
+##### 参数详解
+`option`参数详解
 
 ```javascript
 let option = {
@@ -66,5 +72,23 @@ let option = {
 }
 ```
 
+`lifetimes`参数详解
 
-Email: [look-dj@outlook.com][look-dj@outlook.com]
+``` javascript
+let lifetimes = {
+  async builded(){
+    // 可在此处对已经打包的项目文件经行再操作
+    let file = fs.readFileSync('/dist/.index.html').toString();
+    console.log(file)
+  },
+  uploaded(stream){
+    // 在此处执行服务器命令  解压 移动文件等命令
+    console.log('压缩包已经上传到服务器');
+    stream.write('unzip -o ./dist.zip \n'); // 解压命令
+    stream.write('exit \n');
+  }
+}
+
+```
+
+Email: [look-dj@outlook.com](look-dj@outlook.com)
