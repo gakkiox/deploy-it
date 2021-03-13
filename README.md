@@ -4,15 +4,15 @@
 
 #### 使用方法
 1. 在当前项目下创建auto.js
-
-vue-project
-├── src
-│   ├── App.vue
-│   │   └── ....
-│   └── main.js
-├── auto.js
-└── package.json
-
+```
+  vue-project
+  ├── src
+  │   ├── App.vue
+  │   │   └── ....
+  │   └── main.js
++ ├── auto.js
+  └── package.json
+```
 2. 在auto.js中根据您的服务其配置写入如下内容
 ```javascript
 // auto.js
