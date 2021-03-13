@@ -33,18 +33,74 @@ const log = new Log();
 function Generator(option, userInputFn){
   this.option = option;
   this.dir = process.cwd();
-  this.compressPath = "";
   this.userInputFn = userInputFn;
+  this.sshForm = {};
+};
+Generator.prototype.checkOption = function(){
+  let option = this.option;
+  if(!option || typeof option != 'object'){
+    throw new Error('option param error');
+  };
+  if(!option.username || typeof option.username != 'string'){
+    throw new Error('option.username param error');
+  };
+  if(!option.password || typeof option.password != 'string'){
+    throw new Error('option.password param error');
+  };
+  if(!option.host || typeof option.host != 'string'){
+    throw new Error('option.host param error');
+  };
+  let { host, privateKey, port, username, password } = option;
+  if(!option.useKey){
+    this.sshForm = { host, port, username, password }
+  }else{
+    this.sshForm = { host, port, username, privateKey }
+  }
+};
+
+Generator.prototype.testConnect = async function(){
+  let { option, sshForm } = this, { spinType } = option;
+  let spinner = spin(chalk.green('✨ 正在测试连接远程服务器...'), spinType);
+  spinner.start();
+  await wait(1000);
+  return new Promise((resolve,reject)=>{
+    const conn = new Client();
+    conn
+    .on('ready', () => {
+      // log.blue("Client :: ready");
+      spinner.stop();
+      conn.exec('uptime', (err, stream) => {
+        if (err) throw err;
+        stream.on('close', (code, signal) => {
+          if (code !== 0) {
+            log.red('> 测试连接远程服务器失败');
+            reject(new Error(`Failed to connect to server`))
+            return
+        }
+          conn.end();
+          log.red('> 测试连接远程服务器成功');
+          resolve();
+        }).on('data', (data) => {
+          // log.yellow('STDOUT: ' + data);
+        }).stderr.on('data', (data) => {
+          // log.yellow('STDERR: ' + data);
+        });
+      });    
+    })
+    .connect(sshForm)
+  })
 };
 
 Generator.prototype.build = async function(){
-  log.red('=>开始打包项目');
-  await cmd('npm run build', { show: false, cwd: this.dir });
-  log.red('=>打包完成');
+  let { build } = this.option;
+  log.red('> 开始打包项目');
+  await cmd(build, { show: false, cwd: this.dir });
+  log.red('> 打包完成');
 };
 
 Generator.prototype.compress = async function(){
   let { floder, spinType } = this.option;
+  log.red('> 开始压缩项目');
   let spinner = spin(chalk.green('✨ 正在压缩打包后的项目...'), spinType);
   spinner.start();
   let source = path.resolve(this.dir, floder), compressedName = floder + '.zip';
@@ -56,68 +112,32 @@ Generator.prototype.compress = async function(){
   await wait(1000);
   this.compressPath = compressPath;
   spinner.stop();
-  log.red('=>压缩完成');
-};
-
-Generator.prototype.testConnect = async function(){
-  let { host, spinType, sshKey, port, user } = this.option;
-  let spinner = spin(chalk.green('✨ 正在测试连接远程ssh...'), spinType);
-  spinner.start();
-  await wait(500);
-  return new Promise((resolve,reject)=>{
-    const conn = new Client();
-    conn
-    .on('ready', () => {
-      // log.blue("Client :: ready");
-      spinner.stop();
-      conn.exec('uptime', (err, stream) => {
-        if (err) throw err;
-        stream.on('close', (code, signal) => {
-          if (code !== 0) {
-            log.red('=>测试连接远程ssh失败');
-            reject(new Error(`ssh 链接失败`))
-            return
-        }
-          conn.end();
-          log.red('=>远程ssh测试连接成功');
-          resolve();
-        }).on('data', (data) => {
-          log.yellow('STDOUT: ' + data);
-        }).stderr.on('data', (data) => {
-          log.yellow('STDERR: ' + data);
-        });
-      });    
-    })
-    .connect({
-      host,
-      port,
-      username: user,
-      privateKey: sshKey
-    })
-  })
+  log.red('> 压缩完成');
 };
 
 Generator.prototype.uploadFile = async function(){
-  let { option, compressPath } = this;
-  await cmd(`scp ${ compressPath} ${ option.user }@${ option.host }:${ option.uploadPath }`, { show: true });
-  fs.removeSync(compressPath);
-  log.red('=>上传完毕');
+  log.red(`> 请输入${this.option.username}用户的密码，开始上传项目压缩包`);
+  let { option, compressPath } = this, { username, host, uploadPath } = option;
+  await cmd(`scp ${ compressPath} ${ username }@${ host }:${ uploadPath }`, { show: true });
+  fs.remove(compressPath);
+  log.red('> 上传完毕');
 };
 
 Generator.prototype.connectServer = async function(){
-  let { host, spinType, sshKey, port, user } = this.option;
-  let spinner = spin(chalk.green('✨ 开始连接远程服务器...'), spinType);
+  let { option, sshForm } = this, { spinType } = option;
+  log.red('> 开始连接远程服务器');
+  let spinner = spin(chalk.green('✨ 正在连接远程服务器...'), spinType);
   spinner.start();
   await wait(500);
   return new Promise((resolve,reject)=>{
     const conn = new Client();
     conn.on('ready', () => {
-      log.blue("Client :: ready");
+      log.red("\n> 连接远程服务器成功");
       spinner.stop();
       conn.shell((err, stream) => {
         if (err) throw err;
         stream.on('close', () => {
-          log.blue("Stream :: close")
+          log.red("> 断开远程服务器连接");
           conn.end();
           resolve();
         })
@@ -126,36 +146,8 @@ Generator.prototype.connectServer = async function(){
         });
         this.userInputFn(stream);
       });   
-    }).connect({
-      host,
-      port,
-      username: user,
-      privateKey: sshKey
-    });
+    }).connect(sshForm);
   })
-};
-
-Generator.prototype.checkOption = function(){
-  let option = this.option;
-  if(!option || typeof option != 'object'){
-    throw new Error('option param error');
-  };
-  if(!option.user || typeof option.user != 'string'){
-    throw new Error('option.user param error');
-  };
-  if(!option.password || typeof option.password != 'string'){
-    throw new Error('option.password param error');
-  };
-  if(!option.sshKey || typeof option.sshKey != 'string'){
-    throw new Error('option.sshKey param error');
-  };
-  if(!option.host || typeof option.host != 'string'){
-    throw new Error('option.host param error');
-  };
-  this.option.port = option.port || 22;
-  this.option.spinType = option.spinType || 'Spin9';
-  this.option.floder = option.floder || "dist";
-  this.option.uploadPath = option.uploadPath || "/";
 };
 
 Generator.prototype.start = async function(){
@@ -168,8 +160,9 @@ Generator.prototype.start = async function(){
     await this.uploadFile(); // 上传文件
     await this.connectServer(); // 服务端部署
     end = new Date().valueOf() - time;
-    log.green('本次自动发布共用时' + Math.round(end / 10 )/100 + 's', );
+    log.green('项目自动部署成功，共用时' + Math.round(end / 10 )/100 + 's', );
   }catch(e){
+	console.log('\n')
     console.log(e);
     process.exit();
   }
@@ -187,8 +180,7 @@ function cmd(command, opts = {} ) {
 			if (/warning/.test(str)) {
 				return;
 			}
-      let show = opts.show || true;
-      if(show){
+      if(opts.show){
         process.stdout.write(buffer);
       }
 		});
@@ -232,7 +224,19 @@ Progress.prototype.draw = function(loaded, total){
   }
 };
 
-module.exports = async function(option = {}, fn = ()=>{}){
+module.exports = async function({
+  username = 'root',
+  password = "8848",
+  host = "127.0.0.1", 
+  port = 22,
+  privateKey =`PRIVATE KEY`, 
+  uploadPath = "/",
+  spinType = "Spin9",
+  build = "npm run build",
+  floder = 'dist',
+  useKey = false,
+}, fn = ()=>{}){
+  let option = { username, password, host, port, privateKey, uploadPath, spinType, build, floder, useKey };
   let generator = new Generator(option, fn);
   await generator.start();
 };
