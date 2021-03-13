@@ -53,16 +53,16 @@ const deploy = require('deploy-it');
 
 ```javascript
 let option = {
-    username: 'root',						// 用户名
-    password: "8848",						// 用户密码
-    host: "127.0.0.1", 						// 服务器IP
-    port: 22,								// 服务器端口号
-    privateKey: `PRIVATE KEY`, 				// 服务器ssh私钥 不要格式化 可以使用fs.readFileSync 经行读取
-	uploadPath: "/", 						// 需要上传到服务器的具体目录 默认上传至根目录
-    spinType: "Spin9", 						// 加载动画类型 参考io-spin, 
-	build: "npm run build", 				// 项目打包命令
-	floder: "dist",  						// 打包完成后生成的文件夹名称
-	useKey: false							// 是否使用privateKey经行登录
+  username: 'root',						  // 用户名
+  password: "8848",						  // 用户密码
+  host: "127.0.0.1", 						// 服务器IP
+  port: 22,								      // 服务器端口号
+  privateKey: `PRIVATE KEY`, 		// 服务器ssh私钥 不要格式化 可以使用fs.readFileSync 经行读取
+	uploadPath: "/", 						  // 需要上传到服务器的具体目录 默认上传至根目录
+  spinType: "Spin9", 						// 加载动画类型 参考io-spin, 
+	build: "npm run build", 			// 项目打包命令
+	floder: "dist",  						  // 打包完成后生成的文件夹名称
+	useKey: false							    // 是否使用privateKey经行登录
 }
 ```
 
